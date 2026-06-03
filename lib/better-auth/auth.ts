@@ -49,4 +49,37 @@ export const getAuth = async () => {
     return authInstance;
 }
 
-export const auth = await getAuth();
+// Lazily initialize Better Auth on first *use* rather than at module load.
+//
+// The previous `export const auth = await getAuth()` opened a MongoDB connection at
+// import time. `next build` evaluates every module while collecting page data, so the
+// build connected to the database — which fails when the DB is only reachable at runtime
+// (e.g. an internal Dokploy database service that does not exist during the image build).
+//
+// This Proxy defers the connection until a method is actually invoked at request time.
+// Every call site uses the shape `await auth.api.<method>(...)`, which this preserves.
+type AuthInstance = Awaited<ReturnType<typeof getAuth>>;
+
+export const auth = new Proxy({} as AuthInstance, {
+    get(_target, prop: string) {
+        if (prop === "api") {
+            return new Proxy(
+                {},
+                {
+                    get(_t, method: string) {
+                        return async (...args: unknown[]) => {
+                            const instance = await getAuth();
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            return (instance.api as any)[method](...args);
+                        };
+                    },
+                }
+            );
+        }
+        return async (...args: unknown[]) => {
+            const instance = await getAuth();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return (instance as any)[prop](...args);
+        };
+    },
+});
