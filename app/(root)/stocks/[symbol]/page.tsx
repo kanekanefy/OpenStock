@@ -16,6 +16,9 @@ import { isStockInWatchlist } from '@/lib/actions/watchlist.actions';
 import { getStockSentimentInsights } from '@/lib/actions/adanos.actions';
 import { formatSymbolForTradingView } from '@/lib/utils';
 
+// Connects to MongoDB at request time; skip build-time static generation (DB is runtime-only).
+export const dynamic = "force-dynamic";
+
 export default async function StockDetails({ params }: StockDetailsPageProps) {
     const { symbol } = await params;
     const tvSymbol = formatSymbolForTradingView(symbol);

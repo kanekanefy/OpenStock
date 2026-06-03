@@ -11,6 +11,9 @@ import NewsGrid from '@/components/watchlist/NewsGrid';
 import SearchCommand from '@/components/SearchCommand';
 import { Loader2 } from 'lucide-react';
 
+// Connects to MongoDB at request time; skip build-time static generation (DB is runtime-only).
+export const dynamic = "force-dynamic";
+
 export default async function WatchlistPage() {
     const session = await auth.api.getSession({
         headers: await headers()
